@@ -1,0 +1,54 @@
+[
+  {
+    "title": [
+      "Conservative verification of synthetic references"
+    ],
+    "author": [
+      {
+        "family": "Chen",
+        "given": "Mei Ling"
+      },
+      {
+        "family": "Wang",
+        "given": "David"
+      }
+    ],
+    "published": {
+      "date-parts": [
+        [
+          2024
+        ]
+      ]
+    },
+    "container-title": [
+      "Synthetic Methods Journal"
+    ],
+    "DOI": "10.0000/demo-only",
+    "type": "journal-article",
+    "URL": "https://example.org/synthetic-demo"
+  },
+  {
+    "title": [
+      "Synthetic preprint for testing only"
+    ],
+    "author": [
+      {
+        "family": "Lin",
+        "given": "Alex"
+      }
+    ],
+    "published": {
+      "date-parts": [
+        [
+          2023
+        ]
+      ]
+    },
+    "container-title": [
+      "Synthetic Archive"
+    ],
+    "DOI": "10.0000/preprint-demo",
+    "type": "posted-content",
+    "URL": "https://example.org/preprint-demo"
+  }
+]

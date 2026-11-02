@@ -1,0 +1,33 @@
+<!doctype html><html lang="zh-Hant"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+*{box-sizing:border-box}body{margin:0;background:#10151d;color:#e8edf5;font:14px system-ui,"Microsoft JhengHei",sans-serif}#list{max-height:450px;overflow-y:auto;padding-right:3px}.row{position:relative;overflow:hidden;border:1px solid #2c3747;border-radius:9px;margin-bottom:8px;background:#9b3442}.front{position:relative;background:#19212d;padding:14px 16px;min-height:86px;touch-action:pan-y;cursor:grab;transition:transform .18s ease}.front.dragging{transition:none;cursor:grabbing;user-select:none}.title{font-weight:600;line-height:1.55;overflow-wrap:anywhere}.meta{margin-top:5px;font-size:12px;color:#9aa8bb;overflow-wrap:anywhere}.summary{display:flex;gap:14px;align-items:center}.info{flex:1;min-width:0}button{font:inherit;cursor:pointer;border-radius:6px;padding:7px 12px;color:#e8edf5;background:transparent;border:1px solid #2c3747;white-space:nowrap}button:hover{border-color:#6f9cff}button:focus-visible,.front:focus-visible{outline:2px solid #6f9cff;outline-offset:-2px}.delete{position:absolute;left:0;top:0;width:86px;height:86px;border:0;border-radius:0;background:#9b3442;color:white;visibility:hidden}.row.open .delete{visibility:visible}.editor{display:none;padding-top:16px}.editor.open{display:block}.field{display:grid;grid-template-columns:85px 1fr;align-items:center;gap:12px;margin-bottom:10px}input{width:100%;min-width:0;background:#10151d;color:#e8edf5;border:1px solid #2c3747;border-radius:6px;padding:9px;font:inherit}label{color:#9aa8bb;font-size:12px}.actions{display:flex;justify-content:flex-end;gap:8px}.save{background:#6f9cff;color:#10151d}.error{color:#dfa95b;font-size:12px}.empty{color:#9aa8bb;padding:16px}.hint{margin:0 0 10px;color:#9aa8bb;font-size:12px}@media(prefers-reduced-motion:reduce){.front{transition:none}}
+</style><p class="hint">向右滑動文獻可刪除 · 電腦可用滑鼠向右拖曳</p><div id="list"></div><script>
+const send=(type,extra={})=>parent.postMessage({isStreamlitMessage:true,type,...extra},'*');
+let args={},opened=null;
+const list=document.getElementById('list');
+function height(){send('streamlit:setFrameHeight',{height:Math.min(document.documentElement.scrollHeight,505)})}
+function emit(action,index,fields){send('streamlit:setComponentValue',{value:{action,index,fields,revision:args.revision},dataType:'json'})}
+function render(data){args=data;opened=null;list.replaceChildren();if(!args.rows.length){const p=document.createElement('div');p.className='empty';p.textContent='清單已清空';list.append(p)}
+args.rows.forEach((record,index)=>{
+const row=document.createElement('div');row.className='row';
+const del=document.createElement('button');del.className='delete';del.textContent='刪除';del.tabIndex=-1;del.setAttribute('aria-label','刪除文獻 '+record.title);row.append(del);
+const front=document.createElement('div');front.className='front';front.tabIndex=0;front.setAttribute('aria-label','文獻 '+(index+1)+'，向右滑動或按右方向鍵顯示刪除');row.append(front);
+const summary=document.createElement('div');summary.className='summary';front.append(summary);
+const info=document.createElement('div');info.className='info';summary.append(info);
+const title=document.createElement('div');title.className='title';title.textContent=(index+1)+'. '+record.title;info.append(title);
+const meta=document.createElement('div');meta.className='meta';meta.textContent=[record.year,record.authors,record.venue].filter(Boolean).join(' · ');info.append(meta);
+const edit=document.createElement('button');edit.textContent='編輯';summary.append(edit);
+const editor=document.createElement('div');editor.className='editor';front.append(editor);
+const inputs={};for(const [key,label] of [['title','標題'],['authors','全部作者'],['year','年份'],['venue','期刊／會議'],['doi','DOI']]){const field=document.createElement('div');field.className='field';const labelNode=document.createElement('label');labelNode.textContent=label;const input=document.createElement('input');input.id='r'+index+'_'+key;labelNode.htmlFor=input.id;input.value=record[key]||'';if(key==='authors')input.placeholder='以分號分隔，保留順序';inputs[key]=input;field.append(labelNode,input);editor.append(field)}
+const error=document.createElement('p');error.className='error';editor.append(error);
+const actions=document.createElement('div');actions.className='actions';editor.append(actions);const cancel=document.createElement('button');cancel.textContent='取消';const save=document.createElement('button');save.textContent='儲存';save.className='save';actions.append(cancel,save);
+function close(){front.style.transform='';row.classList.remove('open');del.tabIndex=-1;if(opened===close)opened=null}
+function open(){if(opened&&opened!==close)opened();opened=close;row.classList.add('open');front.style.transform='translateX(86px)';del.tabIndex=0}
+edit.onclick=()=>{close();editor.classList.toggle('open');height()};cancel.onclick=()=>{for(const key in inputs)inputs[key].value=record[key]||'';error.textContent='';editor.classList.remove('open');height()};save.onclick=()=>{const fields=Object.fromEntries(Object.entries(inputs).map(([k,v])=>[k,v.value.trim()]));if(!fields.title){error.textContent='請填寫標題';height();return}emit('edit',index,fields)};del.onclick=()=>{del.disabled=true;emit('delete',index)};
+let start=null,dragged=false;
+front.addEventListener('pointerdown',e=>{if(e.target.closest('button,input,.editor'))return;start={x:e.clientX,y:e.clientY,base:row.classList.contains('open')?86:0};dragged=false});
+front.addEventListener('pointermove',e=>{if(!start)return;const dx=e.clientX-start.x,dy=e.clientY-start.y;if(!dragged&&Math.abs(dy)>12&&Math.abs(dy)>Math.abs(dx)){start=null;return}if(Math.abs(dx)>10){dragged=true;front.setPointerCapture(e.pointerId);front.classList.add('dragging');front.style.transform='translateX('+Math.max(0,Math.min(100,start.base+dx))+'px)'}});
+function finish(e){if(!start)return;const value=start.base+e.clientX-start.x;start=null;front.classList.remove('dragging');if(dragged&&value>42)open();else close()}
+front.addEventListener('pointerup',finish);front.addEventListener('pointercancel',()=>{start=null;front.classList.remove('dragging');close()});front.addEventListener('keydown',e=>{if(e.target!==front)return;if(e.key==='ArrowRight'){e.preventDefault();open();del.focus()}else if(e.key==='Escape'||e.key==='ArrowLeft')close()});list.append(row)
+});height()}
+window.addEventListener('message',e=>{if(e.source===parent&&e.data.type==='streamlit:render')render(e.data.args)});new ResizeObserver(height).observe(document.body);send('streamlit:componentReady',{apiVersion:1});height();
+</script></html>

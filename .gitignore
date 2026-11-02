@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.env
+.streamlit/secrets.toml
+
+.streamlit/openalex-key.json
+register_openalex.cmd
